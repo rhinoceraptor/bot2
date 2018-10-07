@@ -1,4 +1,7 @@
-username = "bot"
+channels = ["random"]
+
+[authentication]
+username = ""
 password = ""
 home_server_url = ""
 identity_server_url = ""
