@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Jack Lewis <jack@jacklew.is>"]
 
 [dependencies]
+http = "0.1"
+diesel = "1.3.3"
+
