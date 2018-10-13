@@ -8,7 +8,7 @@ extern crate toml;
 pub mod config;
 pub mod bot;
 
-use bot::{create_bot, Bot};
+use bot::{Bot};
 
 fn main() {
   let file = config::read_config_file("/home/jack/git/bot/config.toml")
@@ -16,7 +16,8 @@ fn main() {
   let config: config::Config = toml::from_str(&file)
     .expect("Unable to parse config!");
 
-  let bot = create_bot(config);
-  bot.init();
+  Bot::new(config)
+    .init()
+    .expect("Bot failed to initialize");
 }
 

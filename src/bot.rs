@@ -1,23 +1,28 @@
-use std::collections::HashMap;
-use std::io::{self, Write};
-use reqwest;
+use std::error::Error;
 use config::{Config};
+use reqwest;
+
+#[derive(Deserialize, Debug)]
+struct AccessToken {
+  access_token: String,
+}
 
 pub struct Bot {
   config: Config,
   auth_token: Option<String>,
 }
 
-pub fn create_bot (config: Config) -> Bot {
-  Bot { config, auth_token: None }
-}
-
 impl Bot {
-  pub fn init(&self) {
-    self.authenticate();
+  pub fn new(config: Config) -> Self {
+    Bot { config, auth_token: None }
   }
 
-  fn authenticate(&self) {
+  pub fn init(&mut self) -> Result<(), Box<Error>> {
+    self.auth_token = Some(self.authenticate()?);
+    Ok(())
+  }
+
+  fn authenticate(&self) -> Result<String, Box<Error>> {
     let uri = format!(
       "{}/_matrix/client/r0/login",
       self.config.authentication.home_server_url
@@ -30,9 +35,13 @@ impl Bot {
     });
 
     let client = reqwest::Client::new();
-    let body = client.post(&uri).json(&body).send();
+    let AccessToken { access_token } = client
+      .post(&uri)
+      .json(&body)
+      .send()?
+      .json()?;
 
-    println!("{:#?}", body);
+    Ok(access_token)
   }
 }
 
