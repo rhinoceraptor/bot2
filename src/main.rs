@@ -2,9 +2,11 @@
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde;
 extern crate reqwest;
 extern crate toml;
 
+pub mod structures;
 pub mod config;
 pub mod bot;
 

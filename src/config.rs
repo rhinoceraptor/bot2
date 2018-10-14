@@ -4,7 +4,7 @@ use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-  pub channels: Vec<String>,
+  pub rooms: Vec<String>,
   pub authentication: Authentication,
 }
 
@@ -12,6 +12,7 @@ pub struct Config {
 pub struct Authentication {
   pub username: String,
   pub password: String,
+  pub home_server_domain: String,
   pub home_server_url: String,
   pub identity_server_url: String,
 }

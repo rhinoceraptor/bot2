@@ -1,4 +1,4 @@
-channels = ["random"]
+rooms = ["random"]
 
 [authentication]
 username = ""
