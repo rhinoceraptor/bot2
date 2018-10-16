@@ -8,13 +8,11 @@ pub struct Config {
   pub authentication: Authentication,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Authentication {
-  pub username: String,
+  pub user: String,
   pub password: String,
-  pub home_server_domain: String,
-  pub home_server_url: String,
-  pub identity_server_url: String,
+  pub server_url: String,
 }
 
 pub fn read_config_file (filename: &str) -> Result<String, Box<Error>> {

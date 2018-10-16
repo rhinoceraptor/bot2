@@ -1,7 +1,7 @@
 rooms = ["random"]
 
 [authentication]
-username = ""
+user = ""
 password = ""
 home_server_url = ""
 identity_server_url = ""

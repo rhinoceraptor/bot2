@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -6,6 +5,7 @@ extern crate serde;
 extern crate reqwest;
 extern crate toml;
 
+pub mod client;
 pub mod structures;
 pub mod config;
 pub mod bot;
@@ -18,8 +18,9 @@ fn main() {
   let config: config::Config = toml::from_str(&file)
     .expect("Unable to parse config!");
 
-  Bot::new(config)
-    .init()
+  let mut bot = Bot::new(config)
     .expect("Bot failed to initialize");
+  bot.init()
+    .expect("Failed to set up bot");
 }
 
