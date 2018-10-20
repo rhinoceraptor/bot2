@@ -9,6 +9,7 @@ extern crate toml;
 extern crate percent_encoding;
 #[macro_use]
 extern crate error_chain;
+extern crate ctrlc;
 
 pub mod client;
 pub mod config;

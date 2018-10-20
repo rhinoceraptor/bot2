@@ -2,17 +2,16 @@ use client::{MatrixClient};
 
 error_chain! {}
 
-pub struct Room {
+pub struct Room<'a> {
   destroyed: bool,
   pub room: String,
-  pub room_alias: String,
   pub room_id: String,
-  pub client: MatrixClient,
+  pub client: &'a MatrixClient,
 }
 
-impl Room {
-  pub fn new(room: String, room_alias: String, room_id: String, client: MatrixClient) -> Room {
-    Room { destroyed: false, room, room_alias, room_id, client }
+impl<'a> Room<'a> {
+  pub fn new(room: String, room_id: String, client: &'a MatrixClient) -> Room<'a> {
+    Room { destroyed: false, room, room_id, client }
   }
 
   pub fn send_message(&self, message: String) -> Result<()> {
@@ -28,14 +27,6 @@ impl Room {
 
     self.destroyed = true;
     Ok(())
-  }
-}
-
-impl Drop for Room {
-  fn drop(&mut self) {
-    if !self.destroyed {
-      println!("Room {} was dropped without being destroyed!", self.room);
-    }
   }
 }
 
