@@ -13,6 +13,7 @@ pub struct Authentication {
   pub user: String,
   pub password: String,
   pub server_url: String,
+  pub server_domain: String,
 }
 
 pub fn read_config_file (filename: &str) -> Result<String, Box<Error>> {

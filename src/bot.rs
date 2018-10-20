@@ -1,7 +1,8 @@
 use std::error::Error;
-use config::{Config};
+use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use config::{Authentication, Config};
 use client::{MatrixClient};
-use structures::*;
+use room::{Room};
 
 pub struct Bot {
   config: Config,
@@ -17,10 +18,29 @@ impl Bot {
     Ok(Bot { config, room_list: Vec::new(), matrix })
   }
 
-  // Get the list of rooms the bot is already joined to,
-  // and merge it with the list of rooms in config
+  fn encode_room(&self, room: &String) -> String {
+    let Authentication { server_domain, .. } = &self.config.authentication;
+    let r = utf8_percent_encode(&room, DEFAULT_ENCODE_SET).to_string();
+    format!("{}:{}", r, server_domain)
+  }
+
   pub fn init(&mut self) -> Result<(), Box<Error>> {
-    let joined_rooms = self.matrix.get_joined_room_ids()?;
+    // Room::new(room, room_alias, room_id, client)
+    self.room_list = self.config.rooms
+      .iter()
+      .map(|room| {
+        let room_alias = self.encode_room(room);
+        match self.matrix.join_room(&room_alias) {
+          Ok(room_id) => Room::new(room.to_string(), room_alias, room_id, self.matrix.clone()),
+          Err(e) => panic!("Unable to join {}: {}", room, e)
+        }
+      })
+      .collect();
+
+    for room in self.room_list.iter() {
+      room.send_message("wubba lubba dub dub".to_string());
+    }
+
     Ok(())
   }
 }

@@ -1,16 +1,25 @@
+#![recursion_limit = "1024"]
+
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
 extern crate reqwest;
 extern crate toml;
+extern crate percent_encoding;
+#[macro_use]
+extern crate error_chain;
 
 pub mod client;
-pub mod structures;
 pub mod config;
 pub mod bot;
+pub mod room;
 
 use bot::{Bot};
+
+mod errors {
+  error_chain! {}
+}
 
 fn main() {
   let file = config::read_config_file("/home/jack/git/bot/config.toml")
