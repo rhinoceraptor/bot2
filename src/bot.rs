@@ -7,15 +7,15 @@ use room::{Room};
 pub struct Bot {
   config: Config,
   room_list: Vec<Room>,
-  matrix: MatrixClient,
+  matrix_client: MatrixClient,
 }
 
 impl Bot {
   pub fn new(config: Config) -> Result<Bot, Box<Error>> {
     let auth = config.authentication.clone();
-    let mut matrix = MatrixClient::new(auth);
-    matrix.login()?;
-    Ok(Bot { config, room_list: Vec::new(), matrix })
+    let mut matrix_client = MatrixClient::new(auth);
+    matrix_client.login()?;
+    Ok(Bot { config, room_list: Vec::new(), matrix_client })
   }
 
   fn encode_room(&self, room: &String) -> String {
@@ -30,16 +30,25 @@ impl Bot {
       .iter()
       .map(|room| {
         let room_alias = self.encode_room(room);
-        match self.matrix.join_room(&room_alias) {
-          Ok(room_id) => Room::new(room.to_string(), room_alias, room_id, self.matrix.clone()),
+        match self.matrix_client.join_room(&room_alias) {
+          Ok(room_id) => Room::new(room.to_string(), room_alias, room_id, self.matrix_client.clone()),
           Err(e) => panic!("Unable to join {}: {}", room, e)
         }
       })
       .collect();
 
-    for room in self.room_list.iter() {
-      room.send_message("wubba lubba dub dub".to_string());
+    self.matrix_client.sync()?;
+
+    // for room in self.room_list.iter() {
+    //   room.send_message("wubba lubba dub dub".to_string());
+    // }
+
+    for room in self.room_list.iter_mut() {
+      room.destroy()?;
     }
+
+    self.room_list = Vec::new();
+    self.matrix_client.logout()?;
 
     Ok(())
   }

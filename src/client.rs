@@ -1,11 +1,55 @@
-use reqwest;
+use reqwest::{
+  header,
+  header::InvalidHeaderValue,
+  Client,
+  Error as ReqwestError
+};
 use config::{Authentication};
 
 error_chain! {
   foreign_links {
-    InvalidHeader(reqwest::header::InvalidHeaderValue);
-    Reqwest(reqwest::Error);
+    InvalidHeader(InvalidHeaderValue);
+    Reqwest(ReqwestError);
   }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AccountData {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DeviceLists {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DeviceOneTimeKeysCount {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Groups {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Presence {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Rooms {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ToDevice {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Sync {
+  pub account_data: AccountData,
+  pub device_lists: DeviceLists,
+  pub device_one_time_keys_count: DeviceOneTimeKeysCount,
+  pub groups: Groups,
+  pub presence: Presence,
+  pub rooms: Rooms,
+  pub to_device: ToDevice,
 }
 
 #[derive(Serialize, Debug)]
@@ -54,7 +98,8 @@ pub struct MatrixClient {
   access_token: Option<String>,
   auth: Authorization,
   server_url: String,
-  client: reqwest::Client,
+  client: Client,
+  last_updated: Option<String>,
 }
 
 impl MatrixClient {
@@ -68,7 +113,8 @@ impl MatrixClient {
       access_token: None,
       auth: matrix_authorization,
       server_url: auth.server_url,
-      client: reqwest::Client::new(),
+      client: Client::new(),
+      last_updated: None,
     }
   }
 
@@ -79,11 +125,11 @@ impl MatrixClient {
       .send().chain_err(|| "Unable to POST login JSON")?
       .json().chain_err(|| "Unable to deserialize login JSON")?;
 
-    let mut headers = reqwest::header::HeaderMap::new();
-    let header_value = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", access_token))?;
-    headers.insert(reqwest::header::AUTHORIZATION, header_value);
+    let mut headers = header::HeaderMap::new();
+    let header_value = header::HeaderValue::from_str(&format!("Bearer {}", access_token))?;
+    headers.insert(header::AUTHORIZATION, header_value);
 
-    self.client = reqwest::Client::builder()
+    self.client = Client::builder()
       .default_headers(headers)
       .build().chain_err(|| "Unable to build MatrixClient reqwest client")?;
 
@@ -94,19 +140,13 @@ impl MatrixClient {
     format!("{}/_matrix/client/r0{}", self.server_url, path)
   }
 
-  // pub fn logout(&self) -> Result<Response> {
-  //   self.client
-  //     .post(&self.build_url(&format!("/rooms")))
-  //     .json(&Message::new(message))
-  //     .send()
-  // }
+  pub fn logout(&self) -> Result<()> {
+    self.client
+      .post(&self.build_url(&format!("/logout")))
+      .send().chain_err(|| "Unable to logout")?;
 
-  // pub fn sync(&self) -> Result<Response> {
-  //   self.client
-  //     .post(&self.build_url(&format!("/rooms")))
-  //     .json(&Message::new(message))
-  //     .send()
-  // }
+    Ok(())
+  }
 
   pub fn join_room(&self, room_alias: &String) -> Result<String> {
     let RoomId { room_id } = self.client
@@ -126,25 +166,31 @@ impl MatrixClient {
     Ok(())
   }
 
-  // pub fn leave_room(&self) -> Result<Response> {
-  //   self.client
-  //     .post(&self.build_url(&format!("/rooms")))
-  //     .json(&Message::new(message))
-  //     .send()
-  // }
+  pub fn leave_room(&self, room_id: &String) -> Result<()> {
+    self.client
+      .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
+      .send().chain_err(|| "Unable to POST leave room message")?;
 
-  // pub fn search(&self) -> Result<Response> {
-  //   self.client
-  //     .post(&self.build_url(&format!("/rooms")))
-  //     .json(&Message::new(message))
-  //     .send()
-  // }
+    Ok(())
+  }
 
-  // pub fn get_presence(&self) -> Result<Response> {
-  //   self.client
-  //     .post(&self.build_url(&format!("/rooms")))
-  //     .json(&Message::new(message))
-  //     .send()
-  // }
+  pub fn sync(&self) -> Result<()> {
+    let url = match &self.last_updated {
+      Some(since) => self.build_url(&format!("/sync?since={}", since)),
+      None => self.build_url("/sync")
+    };
+    let sync = self.client
+      .get(&url)
+      .send().chain_err(|| "Unable to send GET /sync message")?
+      .text().chain_err(|| "Unable to deserialize sync message")?;
+
+    println!("{}", sync);
+
+    Ok(())
+  }
+
+  pub fn get_presence(&self) -> Result<()> {
+    Ok(())
+  }
 }
 
