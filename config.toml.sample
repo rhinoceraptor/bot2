@@ -1,8 +1,9 @@
-rooms = ["random"]
+[bot_config]
+rooms = ["#random"]
+server_domain = "my.domain.com"
 
 [authentication]
-user = ""
-password = ""
-home_server_url = ""
-identity_server_url = ""
+user = "bot"
+password = "bot1234"
+home_server_url = "https://my.domain.com"
 
