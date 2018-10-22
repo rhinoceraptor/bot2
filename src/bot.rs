@@ -2,7 +2,7 @@ use std::{thread, time};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-// use ctrlc::set_handler as set_ctrlc_handler;
+use ctrlc::set_handler as set_ctrlc_handler;
 use config::{BotConfig};
 use client::{MatrixClient};
 use room::{Room};
@@ -26,7 +26,7 @@ impl<'a> Bot<'a> {
     format!("{}:{}", r, server_domain)
   }
 
-  pub fn init(&mut self) -> Result<()> {
+  pub fn init(mut self) -> Result<()> {
     self.room_list = self.config.rooms
       .iter()
       .map(|room| match self.matrix_client.join_room(&self.encode_room(room)) {
@@ -34,26 +34,26 @@ impl<'a> Bot<'a> {
         Err(e) => panic!("Unable to join {}: {}", room, e)
       }).collect();
 
-    // let running = Arc::new(AtomicBool::new(true));
-    // let r = running.clone();
-
-    //set_ctrlc_handler(|| {
-    //  self.destroy().chain_err(|| "Failed to destroy bot");
-    //  r.store(false, Ordering::SeqCst);
-    //}).expect("Failed to set ctrl-c handler");
-
-    // while running.load(Ordering::SeqCst) {
-    //   self.poll();
-    //   let timeout = time::Duration::from_millis(100);
-    //   thread::sleep(timeout);
-    // }
-
     for room in self.room_list.iter() {
       room.send_message("wubba lubba dub dub".to_string())
         .chain_err(|| "Failed to send message")?;
     }
 
-    self.destroy()?;
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    set_ctrlc_handler(move || {
+      println!("\n\nShutting down...");
+      r.store(false, Ordering::SeqCst);
+    }).expect("Failed to set ctrl-c handler");
+
+    while running.load(Ordering::SeqCst) {
+      self.poll()?;
+      let timeout = time::Duration::from_millis(100);
+      thread::sleep(timeout);
+    }
+
+    self.destroy().chain_err(|| "Failed to destroy bot")?;
 
     Ok(())
   }

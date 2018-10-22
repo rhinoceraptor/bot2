@@ -39,7 +39,7 @@ fn main() {
     .chain_err(|| "Failed to login bot")
     .expect("Matrix client initialization failed!");
 
-  let mut bot = Bot::new(config.bot_config, &matrix_client)
+  let bot = Bot::new(config.bot_config, &matrix_client)
     .expect("Bot failed to initialize!");
   bot.init()
     .expect("Failed to set up bot!");
