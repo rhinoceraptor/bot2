@@ -16,11 +16,14 @@ pub mod config;
 pub mod bot;
 pub mod room;
 
-use bot::{Bot};
+use client::MatrixClient;
+use bot::Bot;
 
 mod errors {
   error_chain! {}
 }
+
+error_chain! {}
 
 fn main() {
   let file = config::read_config_file("/home/jack/git/bot/config.toml")
@@ -28,9 +31,17 @@ fn main() {
   let config: config::Config = toml::from_str(&file)
     .expect("Unable to parse config!");
 
-  let mut bot = Bot::new(config)
-    .expect("Bot failed to initialize");
+  let auth = config.authentication;
+  let mut matrix_client = MatrixClient::new(auth);
+
+  matrix_client
+    .login()
+    .chain_err(|| "Failed to login bot")
+    .expect("Matrix client initialization failed!");
+
+  let mut bot = Bot::new(config.bot_config, &matrix_client)
+    .expect("Bot failed to initialize!");
   bot.init()
-    .expect("Failed to set up bot");
+    .expect("Failed to set up bot!");
 }
 

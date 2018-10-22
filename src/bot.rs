@@ -3,32 +3,25 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 // use ctrlc::set_handler as set_ctrlc_handler;
-use config::{Authentication, Config};
+use config::{BotConfig};
 use client::{MatrixClient};
 use room::{Room};
 
 error_chain! {}
 
 pub struct Bot<'a> {
-  config: Config,
+  config: BotConfig,
   room_list: Vec<Room<'a>>,
-  matrix_client: MatrixClient,
+  matrix_client: &'a MatrixClient,
 }
 
 impl<'a> Bot<'a> {
-  pub fn new(config: Config) -> Result<Bot<'a>> {
-    let auth = config.authentication.clone();
-    let matrix_client = MatrixClient::new(auth);
-
-    matrix_client
-      .login()
-      .chain_err(|| "Failed to login bot")?;
-
+  pub fn new(config: BotConfig, matrix_client: &'a MatrixClient) -> Result<Bot<'a>> {
     Ok(Bot { config, room_list: Vec::new(), matrix_client })
   }
 
   fn encode_room(&self, room: &String) -> String {
-    let Authentication { server_domain, .. } = &self.config.authentication;
+    let BotConfig { server_domain, .. } = &self.config;
     let r = utf8_percent_encode(&room, DEFAULT_ENCODE_SET).to_string();
     format!("{}:{}", r, server_domain)
   }
@@ -41,19 +34,26 @@ impl<'a> Bot<'a> {
         Err(e) => panic!("Unable to join {}: {}", room, e)
       }).collect();
 
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
+    // let running = Arc::new(AtomicBool::new(true));
+    // let r = running.clone();
 
     //set_ctrlc_handler(|| {
     //  self.destroy().chain_err(|| "Failed to destroy bot");
     //  r.store(false, Ordering::SeqCst);
     //}).expect("Failed to set ctrl-c handler");
 
-    while running.load(Ordering::SeqCst) {
-      self.poll();
-      let timeout = time::Duration::from_millis(100);
-      thread::sleep(timeout);
+    // while running.load(Ordering::SeqCst) {
+    //   self.poll();
+    //   let timeout = time::Duration::from_millis(100);
+    //   thread::sleep(timeout);
+    // }
+
+    for room in self.room_list.iter() {
+      room.send_message("wubba lubba dub dub".to_string())
+        .chain_err(|| "Failed to send message")?;
     }
+
+    self.destroy()?;
 
     Ok(())
   }

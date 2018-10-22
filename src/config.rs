@@ -4,8 +4,14 @@ use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-  pub rooms: Vec<String>,
+  pub bot_config: BotConfig,
   pub authentication: Authentication,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BotConfig {
+  pub rooms: Vec<String>,
+  pub server_domain: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -13,7 +19,6 @@ pub struct Authentication {
   pub user: String,
   pub password: String,
   pub server_url: String,
-  pub server_domain: String,
 }
 
 pub fn read_config_file (filename: &str) -> Result<String, Box<Error>> {

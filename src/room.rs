@@ -3,7 +3,6 @@ use client::{MatrixClient};
 error_chain! {}
 
 pub struct Room<'a> {
-  destroyed: bool,
   pub room: String,
   pub room_id: String,
   pub client: &'a MatrixClient,
@@ -11,7 +10,7 @@ pub struct Room<'a> {
 
 impl<'a> Room<'a> {
   pub fn new(room: String, room_id: String, client: &'a MatrixClient) -> Room<'a> {
-    Room { destroyed: false, room, room_id, client }
+    Room { room, room_id, client }
   }
 
   pub fn send_message(&self, message: String) -> Result<()> {
@@ -25,7 +24,6 @@ impl<'a> Room<'a> {
       .leave_room(&self.room_id)
       .chain_err(|| format!("Failed to leave room {}", self.room))?;
 
-    self.destroyed = true;
     Ok(())
   }
 }
