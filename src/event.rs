@@ -1,8 +1,30 @@
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct EventContent {
+  pub body: String,
+  pub msgtype: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct RawEvent {
   #[serde(rename = "type")]
   pub type_: String,
+  pub content: Option<EventContent>,
+  pub sender: Option<String>,
+  pub event_id: Option<String>,
+  pub origin_server_ts: Option<i64>,
+}
+
+pub enum RoomMessage {
+  Audio(RawEvent),
+  Emote(RawEvent),
+  File(RawEvent),
+  Image(RawEvent),
+  Location(RawEvent),
+  Notice(RawEvent),
+  Text(RawEvent),
+  Video(RawEvent),
+  Feedback(RawEvent),
 }
 
 pub enum Event {
@@ -26,15 +48,7 @@ pub enum Event {
   RoomHistoryAvailability(RawEvent),
   RoomJoinRules(RawEvent),
   RoomMember(RawEvent),
-  RoomMessage(RawEvent),
-  RoomMessageAudio(RawEvent),
-  RoomMessageEmote(RawEvent),
-  RoomMessageFile(RawEvent),
-  RoomMessageImage(RawEvent),
-  RoomMessageLocation(RawEvent),
-  RoomMessageNotice(RawEvent),
-  RoomMessageText(RawEvent),
-  RoomMessageVideo(RawEvent),
+  RoomMessage(RoomMessage),
   RoomMessageFeedback(RawEvent),
   RoomName(RawEvent),
   PinnedEvents(RawEvent),
@@ -49,6 +63,23 @@ pub enum Event {
   Tag(RawEvent),
   Typing(RawEvent),
   NotHandled,
+}
+
+pub fn parse_room_message (event: RawEvent) -> Event {
+  match event.content.clone() {
+    Some(content) => match content.msgtype.as_str() {
+      "m.audio" => Event::RoomMessage(RoomMessage::Audio(event)),
+      "m.emote" => Event::RoomMessage(RoomMessage::Emote(event)),
+      "m.file" => Event::RoomMessage(RoomMessage::File(event)),
+      "m.image" => Event::RoomMessage(RoomMessage::Image(event)),
+      "m.location" => Event::RoomMessage(RoomMessage::Location(event)),
+      "m.notice" => Event::RoomMessage(RoomMessage::Notice(event)),
+      "m.text" => Event::RoomMessage(RoomMessage::Text(event)),
+      "m.video" => Event::RoomMessage(RoomMessage::Video(event)),
+      _ =>  Event::NotHandled
+    },
+    None => Event::NotHandled
+  }
 }
 
 pub fn parse_event_type (event: RawEvent) -> Event {
@@ -73,15 +104,7 @@ pub fn parse_event_type (event: RawEvent) -> Event {
     "m.room.history_visibility" => Event::RoomHistoryAvailability(event),
     "m.room.join_rules" => Event::RoomJoinRules(event),
     "m.room.member" => Event::RoomMember(event),
-    "m.room.message" => Event::RoomMessage(event),
-    "m.room.message#m.audio" => Event::RoomMessageAudio(event),
-    "m.room.message#m.emote" => Event::RoomMessageEmote(event),
-    "m.room.message#m.file" => Event::RoomMessageFile(event),
-    "m.room.message#m.image" => Event::RoomMessageImage(event),
-    "m.room.message#m.location" => Event::RoomMessageLocation(event),
-    "m.room.message#m.notice" => Event::RoomMessageNotice(event),
-    "m.room.message#m.text" => Event::RoomMessageText(event),
-    "m.room.message#m.video" => Event::RoomMessageVideo(event),
+    "m.room.message" => parse_room_message(event),
     "m.room.message.feedback" => Event::RoomMessageFeedback(event),
     "m.room.name" => Event::RoomName(event),
     "m.room.pinned_events" => Event::PinnedEvents(event),
@@ -96,6 +119,43 @@ pub fn parse_event_type (event: RawEvent) -> Event {
     "m.tag" => Event::Tag(event),
     "m.typing" => Event::Typing(event),
     _ => Event::NotHandled
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json;
+
+  impl PartialEq for EventContent {
+    fn eq(&self, other: &EventContent) -> bool {
+      self.body == other.body &&
+        self.msgtype == other.msgtype
+    }
+  }
+
+  #[test]
+  fn test_msg_text() {
+    let text_msg = r#"{
+      "type": "m.room.message",
+      "content": {
+        "body": "Hello world!",
+        "msgtype": "m.text"
+      },
+      "sender": "@bot:my.domain.co",
+      "event_id": "$12345:my.domain.co",
+      "origin_server_ts": 1540293504937
+    }"#;
+
+    let e: RawEvent = serde_json::from_str(text_msg).unwrap();
+    assert_eq!(e.type_, "m.room.message");
+    assert_eq!(e.content.clone().unwrap(), EventContent {
+      body: "Hello world!".to_string(),
+      msgtype: "m.text".to_string()
+    });
+    assert_eq!(e.sender.unwrap(), "@bot:my.domain.co");
+    assert_eq!(e.event_id.unwrap(), "$12345:my.domain.co");
+    assert_eq!(e.origin_server_ts.unwrap(), 1540293504937);
   }
 }
 

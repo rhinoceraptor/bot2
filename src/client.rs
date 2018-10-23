@@ -33,23 +33,31 @@ pub struct Groups {
 pub struct Presence {
 }
 
-#[derive(Deserialize, Debug)]
-pub struct Rooms {
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ToDevice {
-}
+// #[derive(Deserialize, Debug)]
+// pub struct Room {
+// }
+//
+// #[derive(Deserialize, Debug)]
+// pub struct Rooms {
+//   join: HashMap<String, Room>,
+//   invite: HashMap<String, InviteRoom>,
+//   leave: HashMap<String, LeaveRoom>,
+// }
+//
+// #[derive(Deserialize, Debug)]
+// pub struct ToDevice {
+// }
 
 #[derive(Deserialize, Debug)]
 pub struct Sync {
-  pub account_data: AccountData,
-  pub device_lists: DeviceLists,
-  pub device_one_time_keys_count: DeviceOneTimeKeysCount,
-  pub groups: Groups,
-  pub presence: Presence,
-  pub rooms: Rooms,
-  pub to_device: ToDevice,
+  // pub account_data: AccountData,
+  // pub device_lists: DeviceLists,
+  // pub device_one_time_keys_count: DeviceOneTimeKeysCount,
+  // pub groups: Groups,
+  // pub presence: Presence,
+  // pub next_batch: String,
+  // pub rooms: Rooms,
+  // pub to_device: ToDevice,
 }
 
 #[derive(Serialize, Debug)]
