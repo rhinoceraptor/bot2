@@ -15,6 +15,7 @@ pub mod client;
 pub mod config;
 pub mod bot;
 pub mod room;
+pub mod event;
 
 use client::MatrixClient;
 use bot::Bot;
