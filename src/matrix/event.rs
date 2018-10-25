@@ -1,8 +1,8 @@
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct EventContent {
-  pub body: String,
-  pub msgtype: String,
+  pub body: Option<String>,
+  pub msgtype: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -15,6 +15,7 @@ pub struct RawEvent {
   pub origin_server_ts: Option<i64>,
 }
 
+#[derive(Debug)]
 pub enum RoomMessage {
   Audio(RawEvent),
   Emote(RawEvent),
@@ -27,6 +28,7 @@ pub enum RoomMessage {
   Feedback(RawEvent),
 }
 
+#[derive(Debug)]
 pub enum Event {
   CallAnswer(RawEvent),
   CallCandidates(RawEvent),
@@ -67,16 +69,19 @@ pub enum Event {
 
 pub fn parse_room_message (event: RawEvent) -> Event {
   match event.content.clone() {
-    Some(content) => match content.msgtype.as_str() {
-      "m.audio" => Event::RoomMessage(RoomMessage::Audio(event)),
-      "m.emote" => Event::RoomMessage(RoomMessage::Emote(event)),
-      "m.file" => Event::RoomMessage(RoomMessage::File(event)),
-      "m.image" => Event::RoomMessage(RoomMessage::Image(event)),
-      "m.location" => Event::RoomMessage(RoomMessage::Location(event)),
-      "m.notice" => Event::RoomMessage(RoomMessage::Notice(event)),
-      "m.text" => Event::RoomMessage(RoomMessage::Text(event)),
-      "m.video" => Event::RoomMessage(RoomMessage::Video(event)),
-      _ =>  Event::NotHandled
+    Some(content) => match content.msgtype {
+      Some(msgtype) => match msgtype.as_str() {
+        "m.audio" => Event::RoomMessage(RoomMessage::Audio(event)),
+        "m.emote" => Event::RoomMessage(RoomMessage::Emote(event)),
+        "m.file" => Event::RoomMessage(RoomMessage::File(event)),
+        "m.image" => Event::RoomMessage(RoomMessage::Image(event)),
+        "m.location" => Event::RoomMessage(RoomMessage::Location(event)),
+        "m.notice" => Event::RoomMessage(RoomMessage::Notice(event)),
+        "m.text" => Event::RoomMessage(RoomMessage::Text(event)),
+        "m.video" => Event::RoomMessage(RoomMessage::Video(event)),
+        _ =>  Event::NotHandled
+      },
+      None => Event::NotHandled
     },
     None => Event::NotHandled
   }

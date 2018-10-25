@@ -4,7 +4,7 @@ use std::sync::Arc;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use ctrlc::set_handler as set_ctrlc_handler;
 use config::{BotConfig};
-use client::matrix_client::MatrixClient;
+use matrix::client::MatrixClient;
 use room::{Room};
 
 error_chain! {}
@@ -49,7 +49,7 @@ impl<'a> Bot<'a> {
 
     while running.load(Ordering::SeqCst) {
       self.poll()?;
-      let timeout = time::Duration::from_millis(100);
+      let timeout = time::Duration::from_millis(1000);
       thread::sleep(timeout);
     }
 

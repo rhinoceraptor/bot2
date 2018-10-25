@@ -11,13 +11,12 @@ extern crate percent_encoding;
 extern crate error_chain;
 extern crate ctrlc;
 
-pub mod client;
+pub mod matrix;
 pub mod config;
 pub mod bot;
 pub mod room;
-pub mod event;
 
-use client::matrix_client::MatrixClient;
+use matrix::client::MatrixClient;
 use bot::Bot;
 
 mod errors {
@@ -40,7 +39,7 @@ fn main() {
     .chain_err(|| "Failed to login bot")
     .expect("Matrix client initialization failed!");
 
-  let bot = Bot::new(config.bot_config, &matrix_client)
+  let bot = Bot::new(config.bot_config, &mut matrix_client)
     .expect("Bot failed to initialize!");
   bot.init()
     .expect("Failed to set up bot!");

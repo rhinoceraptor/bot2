@@ -4,7 +4,8 @@ use reqwest::{
   Client,
   Error as ReqwestError
 };
-use client::matrix_types::*;
+use matrix::types::*;
+use matrix::event::*;
 use config::{Authentication};
 
 error_chain! {
@@ -101,14 +102,26 @@ impl MatrixClient {
       Some(since) => self.build_url(&format!("/sync?since={}", since)),
       None => self.build_url("/sync")
     };
-    let sync = self.client
+    let sync: Sync = self.client
       .get(&url)
       .send().chain_err(|| "Unable to send GET /sync message")?
-      .text().chain_err(|| "Unable to deserialize sync message")?;
+      .json().chain_err(|| "Unable to deserialize sync message")?;
 
-    println!("{}", sync);
+    let events = self.parse_sync_events(sync);
+    println!("{:#?}", events);
 
     Ok(())
+  }
+
+  pub fn parse_sync_events(&self, sync: Sync) -> Vec<Event> {
+    let mut events: Vec<Event> = Vec::new();
+
+    for (room_id, raw_event) in sync.rooms.join.iter() {
+      println!("{:#?}", room_id);
+      println!("{:#?}", raw_event);
+    }
+
+    events
   }
 
   pub fn get_presence(&self) -> Result<()> {
