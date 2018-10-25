@@ -4,7 +4,7 @@ use std::sync::Arc;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use ctrlc::set_handler as set_ctrlc_handler;
 use config::{BotConfig};
-use client::{MatrixClient};
+use client::matrix_client::MatrixClient;
 use room::{Room};
 
 error_chain! {}

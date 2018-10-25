@@ -1,4 +1,4 @@
-use client::{MatrixClient};
+use client::matrix_client::{MatrixClient};
 
 error_chain! {}
 

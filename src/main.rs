@@ -17,7 +17,7 @@ pub mod bot;
 pub mod room;
 pub mod event;
 
-use client::MatrixClient;
+use client::matrix_client::MatrixClient;
 use bot::Bot;
 
 mod errors {
