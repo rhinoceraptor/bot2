@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
 pub struct AccountData {
@@ -19,20 +20,29 @@ pub struct Groups {
 pub struct Presence {
 }
 
-// #[derive(Deserialize, Debug)]
-// pub struct Room {
-// }
-//
-// #[derive(Deserialize, Debug)]
-// pub struct Rooms {
-//   join: HashMap<String, Room>,
-//   invite: HashMap<String, InviteRoom>,
-//   leave: HashMap<String, LeaveRoom>,
-// }
-//
-// #[derive(Deserialize, Debug)]
-// pub struct ToDevice {
-// }
+#[derive(Deserialize, Debug)]
+pub struct InviteRoom {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct LeaveRoom {
+}
+
+
+#[derive(Deserialize, Debug)]
+pub struct Room {
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Rooms {
+  join: HashMap<String, Room>,
+  invite: HashMap<String, InviteRoom>,
+  leave: HashMap<String, LeaveRoom>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ToDevice {
+}
 
 #[derive(Deserialize, Debug)]
 pub struct JoinedRooms {
@@ -47,7 +57,7 @@ pub struct Sync {
   // pub groups: Groups,
   // pub presence: Presence,
   // pub next_batch: String,
-  // pub rooms: Rooms,
+  pub rooms: Rooms,
   // pub to_device: ToDevice,
 }
 

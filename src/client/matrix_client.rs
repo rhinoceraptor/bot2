@@ -1,19 +1,10 @@
 use reqwest::{
   header,
-  header::InvalidHeaderValue,
-  Client,
-  Error as ReqwestError
+  Client
 };
 use client::matrix_types::*;
 use config::{Authentication};
-
-error_chain! {
-  foreign_links {
-    InvalidHeader(InvalidHeaderValue);
-    Reqwest(ReqwestError);
-  }
-}
-
+use failure::Error;
 
 #[derive(Clone)]
 pub struct MatrixClient {
@@ -40,12 +31,12 @@ impl MatrixClient {
     }
   }
 
-  pub fn login(&mut self) -> Result<()> {
+  pub fn login(&mut self) -> Result<(), Error> {
     let AccessToken { access_token } = self.client
       .post(&self.build_url("/login"))
       .json(&self.auth)
-      .send().chain_err(|| "Unable to POST login JSON")?
-      .json().chain_err(|| "Unable to deserialize login JSON")?;
+      .send()?
+      .json()?;
 
     let mut headers = header::HeaderMap::new();
     let header_value = header::HeaderValue::from_str(&format!("Bearer {}", access_token))?;
@@ -53,7 +44,7 @@ impl MatrixClient {
 
     self.client = Client::builder()
       .default_headers(headers)
-      .build().chain_err(|| "Unable to build MatrixClient reqwest client")?;
+      .build()?;
 
     Ok(())
   }
@@ -62,56 +53,57 @@ impl MatrixClient {
     format!("{}/_matrix/client/r0{}", self.server_url, path)
   }
 
-  pub fn logout(&self) -> Result<()> {
+  pub fn logout(&self) -> Result<(), Error> {
     self.client
       .post(&self.build_url(&format!("/logout")))
-      .send().chain_err(|| "Unable to logout")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn join_room(&self, room_alias: &String) -> Result<String> {
+  pub fn join_room(&self, room_alias: &String) -> Result<String, Error> {
     let RoomId { room_id } = self.client
       .post(&self.build_url(&format!("/join/{}", room_alias)))
-      .send().chain_err(|| "Unable to POST join room")?
-      .json().chain_err(|| "Unable to deserialize join room JSON")?;
+      .send()?
+      .json()?;
 
     Ok(room_id)
   }
 
-  pub fn send_message(&self, room_id: &String, message: String) -> Result<()> {
+  pub fn send_message(&self, room_id: &String, message: String) -> Result<(), Error> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/send/m.room.message", room_id)))
       .json(&Message::new(message))
-      .send().chain_err(|| "Unable to send message")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn leave_room(&self, room_id: &String) -> Result<()> {
+  pub fn leave_room(&self, room_id: &String) -> Result<(), Error> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
-      .send().chain_err(|| "Unable to POST leave room message")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn sync(&self) -> Result<()> {
+  pub fn sync(&self) -> Result<(), Error> {
     let url = match &self.last_updated {
       Some(since) => self.build_url(&format!("/sync?since={}", since)),
       None => self.build_url("/sync")
     };
-    let sync = self.client
-      .get(&url)
-      .send().chain_err(|| "Unable to send GET /sync message")?
-      .text().chain_err(|| "Unable to deserialize sync message")?;
 
-    println!("{}", sync);
+    let Sync { rooms } = self.client
+      .get(&url)
+      .send()?
+      .json()?;
+
+    println!("{:#?}", rooms);
 
     Ok(())
   }
 
-  pub fn get_presence(&self) -> Result<()> {
+  pub fn get_presence(&self) -> Result<(), Error> {
     Ok(())
   }
 }
