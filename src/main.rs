@@ -1,14 +1,10 @@
 #![recursion_limit = "1024"]
-
 extern crate serde_json;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde_derive;
 extern crate serde;
 extern crate reqwest;
 extern crate toml;
 extern crate percent_encoding;
-#[macro_use]
-extern crate error_chain;
 extern crate ctrlc;
 
 pub mod matrix;
@@ -18,12 +14,6 @@ pub mod room;
 
 use matrix::client::MatrixClient;
 use bot::Bot;
-
-mod errors {
-  error_chain! {}
-}
-
-error_chain! {}
 
 fn main() {
   let file = config::read_config_file("/home/jack/git/bot/config.toml")
@@ -36,12 +26,11 @@ fn main() {
 
   matrix_client
     .login()
-    .chain_err(|| "Failed to login bot")
     .expect("Matrix client initialization failed!");
 
   let bot = Bot::new(config.bot_config, &mut matrix_client)
     .expect("Bot failed to initialize!");
-  bot.init()
+  bot.run()
     .expect("Failed to set up bot!");
 }
 

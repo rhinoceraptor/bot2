@@ -1,20 +1,15 @@
 use reqwest::{
-  header,
-  header::InvalidHeaderValue,
-  Client,
-  Error as ReqwestError
+  header::HeaderMap,
+  header::HeaderValue,
+  header::AUTHORIZATION,
+  Client
 };
 use matrix::types::*;
 use matrix::event::*;
 use config::{Authentication};
+use std::error::Error;
 
-error_chain! {
-  foreign_links {
-    InvalidHeader(InvalidHeaderValue);
-    Reqwest(ReqwestError);
-  }
-}
-
+type MatrixClientResult<T> = Result<T, Box<Error>>;
 
 #[derive(Clone)]
 pub struct MatrixClient {
@@ -41,20 +36,20 @@ impl MatrixClient {
     }
   }
 
-  pub fn login(&mut self) -> Result<()> {
+  pub fn login(&mut self) -> MatrixClientResult<()> {
     let AccessToken { access_token } = self.client
       .post(&self.build_url("/login"))
       .json(&self.auth)
-      .send().chain_err(|| "Unable to POST login JSON")?
-      .json().chain_err(|| "Unable to deserialize login JSON")?;
+      .send()?
+      .json()?;
 
-    let mut headers = header::HeaderMap::new();
-    let header_value = header::HeaderValue::from_str(&format!("Bearer {}", access_token))?;
-    headers.insert(header::AUTHORIZATION, header_value);
+    let mut headers = HeaderMap::new();
+    let header_value = HeaderValue::from_str(&format!("Bearer {}", access_token))?;
+    headers.insert(AUTHORIZATION, header_value);
 
     self.client = Client::builder()
       .default_headers(headers)
-      .build().chain_err(|| "Unable to build MatrixClient reqwest client")?;
+      .build()?;
 
     Ok(())
   }
@@ -63,60 +58,60 @@ impl MatrixClient {
     format!("{}/_matrix/client/r0{}", self.server_url, path)
   }
 
-  pub fn logout(&self) -> Result<()> {
+  pub fn logout(&self) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/logout")))
-      .send().chain_err(|| "Unable to logout")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn join_room(&self, room_alias: &String) -> Result<String> {
+  pub fn join_room(&self, room_alias: &String) -> MatrixClientResult<String> {
     let RoomId { room_id } = self.client
       .post(&self.build_url(&format!("/join/{}", room_alias)))
-      .send().chain_err(|| "Unable to POST join room")?
-      .json().chain_err(|| "Unable to deserialize join room JSON")?;
+      .send()?
+      .json()?;
 
     Ok(room_id)
   }
 
-  pub fn send_message(&self, room_id: &String, message: String) -> Result<()> {
+  pub fn send_message(&self, room_id: &String, message: String) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/send/m.room.message", room_id)))
       .json(&Message::new(message))
-      .send().chain_err(|| "Unable to send message")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn leave_room(&self, room_id: &String) -> Result<()> {
+  pub fn leave_room(&self, room_id: &String) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
-      .send().chain_err(|| "Unable to POST leave room message")?;
+      .send()?;
 
     Ok(())
   }
 
-  pub fn sync(&self) -> Result<()> {
+  pub fn sync(&self) -> MatrixClientResult<()> {
     let url = match &self.last_updated {
       Some(since) => self.build_url(&format!("/sync?since={}", since)),
       None => self.build_url("/sync")
     };
+
     let sync: Sync = self.client
       .get(&url)
-      .send().chain_err(|| "Unable to send GET /sync message")?
-      .json().chain_err(|| "Unable to deserialize sync message")?;
-
-    let events = self.parse_sync_events(sync);
-    println!("{:#?}", events);
+      .send()?
+      .json()?;
 
     Ok(())
   }
 
   pub fn parse_sync_events(&self, sync: Sync) -> Vec<Event> {
-    let mut events: Vec<Event> = Vec::new();
+    let Sync { rooms, next_batch } = sync;
 
-    for (room_id, raw_event) in sync.rooms.join.iter() {
+    let events: Vec<Event> = Vec::new();
+
+    for (room_id, raw_event) in rooms.join.iter() {
       println!("{:#?}", room_id);
       println!("{:#?}", raw_event);
     }
@@ -124,7 +119,7 @@ impl MatrixClient {
     events
   }
 
-  pub fn get_presence(&self) -> Result<()> {
+  pub fn get_presence(&self) -> MatrixClientResult<()> {
     Ok(())
   }
 }
