@@ -1,10 +1,10 @@
-use reqwest::{
-  header,
-  Client
-};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::{Client};
 use client::matrix_types::*;
 use config::{Authentication};
-use failure::Error;
+use std::error::Error;
+
+type MatrixClientResult<T> = Result<T, Box<Error>>;
 
 #[derive(Clone)]
 pub struct MatrixClient {
@@ -31,16 +31,16 @@ impl MatrixClient {
     }
   }
 
-  pub fn login(&mut self) -> Result<(), Error> {
+  pub fn login(&mut self) -> MatrixClientResult<()> {
     let AccessToken { access_token } = self.client
       .post(&self.build_url("/login"))
       .json(&self.auth)
       .send()?
       .json()?;
 
-    let mut headers = header::HeaderMap::new();
-    let header_value = header::HeaderValue::from_str(&format!("Bearer {}", access_token))?;
-    headers.insert(header::AUTHORIZATION, header_value);
+    let mut headers = HeaderMap::new();
+    let header_value = HeaderValue::from_str(&format!("Bearer {}", access_token))?;
+    headers.insert(AUTHORIZATION, header_value);
 
     self.client = Client::builder()
       .default_headers(headers)
@@ -53,7 +53,7 @@ impl MatrixClient {
     format!("{}/_matrix/client/r0{}", self.server_url, path)
   }
 
-  pub fn logout(&self) -> Result<(), Error> {
+  pub fn logout(&self) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/logout")))
       .send()?;
@@ -61,7 +61,7 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn join_room(&self, room_alias: &String) -> Result<String, Error> {
+  pub fn join_room(&self, room_alias: &String) -> MatrixClientResult<String> {
     let RoomId { room_id } = self.client
       .post(&self.build_url(&format!("/join/{}", room_alias)))
       .send()?
@@ -70,7 +70,7 @@ impl MatrixClient {
     Ok(room_id)
   }
 
-  pub fn send_message(&self, room_id: &String, message: String) -> Result<(), Error> {
+  pub fn send_message(&self, room_id: &String, message: String) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/send/m.room.message", room_id)))
       .json(&Message::new(message))
@@ -79,7 +79,7 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn leave_room(&self, room_id: &String) -> Result<(), Error> {
+  pub fn leave_room(&self, room_id: &String) -> MatrixClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
       .send()?;
@@ -87,7 +87,7 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn sync(&self) -> Result<(), Error> {
+  pub fn sync(&self) -> MatrixClientResult<()> {
     let url = match &self.last_updated {
       Some(since) => self.build_url(&format!("/sync?since={}", since)),
       None => self.build_url("/sync")
@@ -103,7 +103,7 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn get_presence(&self) -> Result<(), Error> {
+  pub fn get_presence(&self) -> MatrixClientResult<()> {
     Ok(())
   }
 }

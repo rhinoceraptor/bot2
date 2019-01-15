@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 use std::fs::File;
-use failure::Error;
+use std::error::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -21,7 +21,7 @@ pub struct Authentication {
   pub server_url: String,
 }
 
-pub fn read_config_file (filename: &str) -> Result<String, Error> {
+pub fn read_config_file (filename: &str) -> Result<String, Box<Error>> {
   let mut buf = String::new();
   let mut f = File::open(filename)?;
   f.read_to_string(&mut buf)?;

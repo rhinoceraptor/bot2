@@ -1,5 +1,7 @@
 use client::matrix_client::{MatrixClient};
-use failure::Error;
+use std::error::Error;
+
+type RoomResult<T> = Result<T, Box<Error>>;
 
 pub struct Room<'a> {
   pub room: String,
@@ -12,12 +14,12 @@ impl<'a> Room<'a> {
     Room { room, room_id, client }
   }
 
-  pub fn send_message(&self, message: String) -> Result<(), Error> {
+  pub fn send_message(&self, message: String) -> RoomResult<()> {
     self.client.send_message(&self.room_id, message)?;
     Ok(())
   }
 
-  pub fn destroy(&mut self) -> Result<(), Error> {
+  pub fn destroy(&mut self) -> RoomResult<()> {
     self.client.leave_room(&self.room_id)?;
     Ok(())
   }

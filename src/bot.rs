@@ -1,12 +1,14 @@
 use std::{thread, time};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use failure::Error;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use ctrlc::set_handler as set_ctrlc_handler;
 use config::{BotConfig};
 use client::matrix_client::MatrixClient;
+use std::error::Error;
 use room::{Room};
+
+type BotResult<T> = Result<T, Box<Error>>;
 
 pub struct Bot<'a> {
   config: BotConfig,
@@ -15,7 +17,7 @@ pub struct Bot<'a> {
 }
 
 impl<'a> Bot<'a> {
-  pub fn new(config: BotConfig, matrix_client: &'a MatrixClient) -> Result<Bot<'a>, Error> {
+  pub fn new(config: BotConfig, matrix_client: &'a MatrixClient) -> BotResult<Bot<'a>> {
     Ok(Bot { config, room_list: Vec::new(), matrix_client })
   }
 
@@ -25,7 +27,7 @@ impl<'a> Bot<'a> {
     format!("{}:{}", r, server_domain)
   }
 
-  pub fn run(mut self) -> Result<(), Error> {
+  pub fn run(mut self) -> BotResult<()> {
     self.room_list = self.config.rooms
       .iter()
       .map(|room| match self.matrix_client.join_room(&self.encode_room(room)) {
@@ -56,12 +58,12 @@ impl<'a> Bot<'a> {
     Ok(())
   }
 
-  pub fn poll(&self) -> Result<(), Error> {
+  pub fn poll(&self) -> BotResult<()> {
     self.matrix_client.sync()?;
     Ok(())
   }
 
-  pub fn destroy(&mut self) -> Result<(), Error> {
+  pub fn destroy(&mut self) -> BotResult<()> {
     for room in self.room_list.iter_mut() {
       room.destroy()?;
     }
