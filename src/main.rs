@@ -10,9 +10,9 @@ extern crate ctrlc;
 pub mod matrix;
 pub mod config;
 pub mod bot;
-pub mod room;
+pub mod client;
 
-use matrix::client::MatrixClient;
+use matrix::matrix::Matrix;
 use bot::Bot;
 
 fn main() {
@@ -22,15 +22,15 @@ fn main() {
     .expect("Unable to parse config!");
 
   let auth = config.authentication;
-  let mut matrix_client = MatrixClient::new(auth);
+  let mut matrix_client = Matrix::new(auth);
 
   matrix_client
     .login()
     .expect("Matrix client initialization failed!");
 
-  let bot = Bot::new(config.bot_config, &mut matrix_client)
-    .expect("Bot failed to initialize!");
-  bot.run()
+  let bot = Bot::new(config.bot_config, matrix_client)
+    .expect("Bot failed to initialize!")
+    .run()
     .expect("Failed to set up bot!");
 }
 

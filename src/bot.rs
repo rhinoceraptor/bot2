@@ -1,24 +1,23 @@
 use std::{thread, time};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use ctrlc::set_handler as set_ctrlc_handler;
 use config::{BotConfig};
-use matrix::client::MatrixClient;
 use std::error::Error;
-use room::{Room};
+use client::Client;
 
 type BotResult<T> = Result<T, Box<Error>>;
 
-pub struct Bot<'a> {
+#[derive(Debug)]
+pub struct Bot {
   config: BotConfig,
-  room_list: Vec<Room<'a>>,
-  matrix_client: &'a MatrixClient,
+  room_list: Vec<String>,
+  client: Client,
 }
 
-impl<'a> Bot<'a> {
-  pub fn new(config: BotConfig, matrix_client: &'a MatrixClient) -> BotResult<Bot<'a>> {
-    Ok(Bot { config, room_list: Vec::new(), matrix_client })
+impl Bot {
+  pub fn new(config: BotConfig, client: impl Client) -> BotResult<Bot> {
+    Ok(Bot { config, room_list: Vec::new(), client })
   }
 
   fn encode_room(&self, room: &String) -> String {
@@ -28,12 +27,12 @@ impl<'a> Bot<'a> {
   }
 
   pub fn run(mut self) -> BotResult<()> {
-    self.room_list = self.config.rooms
-      .iter()
-      .map(|room| match self.matrix_client.join_room(&self.encode_room(room)) {
-        Ok(room_id) => Room::new(room.to_string(), room_id, &self.matrix_client),
-        Err(e) => panic!("Unable to join {}: {}", room, e)
-      }).collect();
+    for room in self.room_list {
+      match self.client.join_room(room) {
+        Ok(()) => println!("Joined {}", room),
+        Err(e) => panic!("Unable to join room {}", room)
+      }
+    }
 
     for room in self.room_list.iter() {
       room.send_message("wubba lubba dub dub".to_string())?;
@@ -59,16 +58,16 @@ impl<'a> Bot<'a> {
   }
 
   pub fn poll(&mut self) -> BotResult<()> {
-    self.matrix_client.sync()?;
+    self.client.sync()?;
     Ok(())
   }
 
   pub fn destroy(&mut self) -> BotResult<()> {
-    for room in self.room_list.iter_mut() {
-      room.destroy()?;
+    for room in self.room_list.iter() {
+      self.client.leave_room(room);
     }
 
-    self.matrix_client.logout()?;
+    self.client.logout()?;
 
     Ok(())
   }

@@ -2,41 +2,39 @@ use reqwest::{
   header::HeaderMap,
   header::HeaderValue,
   header::AUTHORIZATION,
-  Client
+  Client as ReqwestClient
 };
 use matrix::types::*;
 use matrix::event::*;
 use config::{Authentication};
-use std::error::Error;
+use client::{Client, ClientResult};
 
-type MatrixClientResult<T> = Result<T, Box<Error>>;
-
-#[derive(Clone)]
-pub struct MatrixClient {
+#[derive(Debug)]
+pub struct Matrix {
   access_token: Option<String>,
   auth: Authorization,
   server_url: String,
-  client: Client,
+  client: ReqwestClient,
   last_updated: Option<String>,
 }
 
-impl MatrixClient {
-  pub fn new(auth: Authentication) -> MatrixClient {
+impl Client for Matrix {
+  fn new(auth: Authentication) -> Matrix {
     let matrix_authorization = Authorization::new(
       auth.user.to_string(),
       auth.password.to_string()
     );
 
-    MatrixClient {
+    Matrix {
       access_token: None,
       auth: matrix_authorization,
       server_url: auth.server_url,
-      client: Client::new(),
+      client: ReqwestClient::new(),
       last_updated: None,
     }
   }
 
-  pub fn login(&mut self) -> MatrixClientResult<()> {
+  fn login(&mut self) -> ClientResult<()> {
     let AccessToken { access_token } = self.client
       .post(&self.build_url("/login"))
       .json(&self.auth)
@@ -47,26 +45,21 @@ impl MatrixClient {
     let header_value = HeaderValue::from_str(&format!("Bearer {}", access_token))?;
     headers.insert(AUTHORIZATION, header_value);
 
-    self.client = Client::builder()
+    self.client = ReqwestClient::builder()
       .default_headers(headers)
       .build()?;
 
     Ok(())
   }
 
-  pub fn build_url(&self, path: &str) -> String {
-    format!("{}/_matrix/client/r0{}", self.server_url, path)
-  }
-
-  pub fn logout(&self) -> MatrixClientResult<()> {
+  fn logout(&self) -> ClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/logout")))
       .send()?;
-
     Ok(())
   }
 
-  pub fn join_room(&self, room_alias: &String) -> MatrixClientResult<String> {
+  fn join_room(&self, room_alias: &String) -> ClientResult<String> {
     let RoomId { room_id } = self.client
       .post(&self.build_url(&format!("/join/{}", room_alias)))
       .send()?
@@ -75,7 +68,15 @@ impl MatrixClient {
     Ok(room_id)
   }
 
-  pub fn send_message(&self, room_id: &String, message: String) -> MatrixClientResult<()> {
+  fn leave_room(&self, room_id: &String) -> ClientResult<()> {
+    self.client
+      .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
+      .send()?;
+
+    Ok(())
+  }
+
+  fn send_message(&self, room_id: &String, message: String) -> ClientResult<()> {
     self.client
       .post(&self.build_url(&format!("/rooms/{}/send/m.room.message", room_id)))
       .json(&Message::new(message))
@@ -84,15 +85,17 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn leave_room(&self, room_id: &String) -> MatrixClientResult<()> {
-    self.client
-      .post(&self.build_url(&format!("/rooms/{}/leave", room_id)))
-      .send()?;
-
+  fn get_presence(&self) -> ClientResult<()> {
     Ok(())
   }
+}
 
-  pub fn sync(&self) -> MatrixClientResult<()> {
+impl Matrix {
+  fn build_url(&self, path: &str) -> String {
+    format!("{}/_matrix/client/r0{}", self.server_url, path)
+  }
+
+  fn sync(&self) -> ClientResult<()> {
     let url = match &self.last_updated {
       Some(since) => self.build_url(&format!("/sync?since={}", since)),
       None => self.build_url("/sync")
@@ -106,7 +109,7 @@ impl MatrixClient {
     Ok(())
   }
 
-  pub fn parse_sync_events(&self, sync: Sync) -> Vec<Event> {
+  fn parse_sync_events(&self, sync: Sync) -> Vec<Event> {
     let Sync { rooms, next_batch } = sync;
 
     let events: Vec<Event> = Vec::new();
@@ -118,10 +121,5 @@ impl MatrixClient {
 
     events
   }
-
-  pub fn get_presence(&self) -> MatrixClientResult<()> {
-    Ok(())
-  }
 }
-
 
